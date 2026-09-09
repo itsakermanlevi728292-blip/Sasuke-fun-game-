@@ -11,6 +11,9 @@ from telegram.ext import (
 
 TOKEN = os.getenv("BOT_TOKEN")
 
+# Media Link (Photo/GIF URL)
+START_MEDIA_URL = "https://telegra.ph/file/0b1062972eb2e8612140a.jpg"
+
 class MafiaGame:
     def __init__(self):
         self.reset()
@@ -50,7 +53,7 @@ def get_alive_players():
 
 # --- COMMAND HANDLERS ---
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Custom Mafia Game Bot Welcome Message with exact original fonts & Premium Emojis."""
+    """Custom Mafia Game Bot Welcome Message with Photo & Quote Block."""
     user_name = update.effective_user.first_name
 
     # Premium Emoji Tags
@@ -61,17 +64,19 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     E_POWER  = '<tg-emoji emoji-id="5474322494657699248">👑</tg-emoji>'
 
     welcome_text = (
+        f"<blockquote>"
         f"{E_AVATAR} <b>ʜєʏ {user_name}</b> {E_AVATAR}\n\n"
         f"{E_ARROW} <b>ᴡєʟᴄσϻє ᴛσ ᴍᴀғɪᴀ ɢᴀᴍᴇ ʙᴏᴛ 🎭˼{E_SPARK}</b>\n"
         f"<b>ᴘʀєϻɪᴜϻ | ᴀᴅ-ғʀєє | ᴜʟᴛʀᴧ ꜱϻσσᴛʜ</b>\n\n"
-        f"{E_ARROW} <b>ʜɪɢʜ-ǫᴜᴧʟɪᴛʏ ɢᴧᴍє ʜσꜱᴛ ʙσᴛ</b>\n"
+        f"{E_ARROW} <b>ʜɪɢʜ-ǫᴜᴧʟɪᴛʏ ɢᴧϻє ʜσꜱᴛ ʙσᴛ</b>\n"
         f"<b>ғσʀ ᴛєʟᴇɢʀᴧϻ ɢʀσᴜᴘꜱ & ᴄʜᴧηηєʟꜱ</b>\n\n"
-        f"{E_LIGHT} <b>ꜱєᴄʀєᴛ ʀσʟє ᴧꜱꜱɪɢηϻєηᴛ</b>\n"
+        f"{E_LIGHT} <b>ꜱєᴄʀєᴛ ʀσ🇱є ᴧꜱꜱɪɢηϻєηᴛ</b>\n"
         f"{E_LIGHT} <b>ᴧᴜᴛσϻᴧᴛєᴅ ɴɪɢʜᴛ/ᴅᴧʏ ᴘʜᴧꜱєꜱ</b>\n"
         f"{E_LIGHT} <b>ɪηᴛєʀᴧᴄᴛɪᴠє ᴠσᴛɪηɢ | ησ ʟᴧɢ</b>\n\n"
-        f"{E_ARROW} <b>ᴛᴧᴘ ʜєʟᴘ ғσʀ ᴄσϻϻᴧηᴅꜱ</b>\n\n"
-        f"{E_POWER} <b>ᴘσᴡєʀєᴅ ʙʏ : <a href='https://t.me/sasuke_qt'>𝛅 ᥲ s 𝛖 𝛋 ᴇ ࿐</a></b>\n\n"
-        f"•── ⋅ ⋅ ────── ⋅᯽⋅ ────── ⋅ ⋅ ──•"
+        f"{E_ARROW} <b>ᴛᴧ🇵 ʜєʟᴘ ғσʀ ᴄσϻϻᴧηᴅꜱ</b>\n\n"
+        f"{E_POWER} <b>ᴘσᴡєʀєᴅ ʙʏ : <a href='https://t.me/sasuke_qt'>𝛅 ᥲ s 𝛖 𝛋 ᴇ ࿐</a></b>\n"
+        f"── ⋅ ⋅ ────── ⋅᯽⋅ ────── ⋅ ⋅ ──"
+        f"</blockquote>"
     )
 
     keyboard = InlineKeyboardMarkup([
@@ -84,8 +89,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("👑 OWNER ↗️", url="https://t.me/sasuke_qt")]
     ])
 
-    await update.message.reply_text(
-        text=welcome_text,
+    await update.message.reply_photo(
+        photo=START_MEDIA_URL = "https://files.catbox.moe/e6rzem.jpg"
+        caption=welcome_text,
         reply_markup=keyboard,
         parse_mode="HTML"
     )
