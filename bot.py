@@ -10,7 +10,6 @@ from telegram.ext import (
 )
 
 TOKEN = os.getenv("BOT_TOKEN")
-WELCOME_IMAGE = "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800"
 
 class MafiaGame:
     def __init__(self):
@@ -51,17 +50,18 @@ def get_alive_players():
 
 # --- COMMAND HANDLERS ---
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handles /start command instantly without failing on external links."""
     user_name = update.effective_user.first_name
-    caption = (
+    text = (
         f"👋 **Welcome to Mafia Host, {user_name}!**\n\n"
         "I am a fully automated Mafia/Werewolf game engine built for Telegram groups.\n\n"
         "📌 **How to Play:**\n"
         "1. Add me to a Telegram Group and give me Admin rights.\n"
         "2. Type `/newgame` in the group to start a lobby.\n"
-        "3. Ensure all players press `/start` in DM so I can assign secret roles!\n\n"
+        "3. Ensure all players press `/start` here in DM so I can assign secret roles!\n\n"
         "Use `/rules` for complete role instructions."
     )
-    await update.message.reply_photo(photo=WELCOME_IMAGE, caption=caption, parse_mode="Markdown")
+    await update.message.reply_text(text, parse_mode="Markdown")
 
 async def rules_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     rules_text = (
@@ -73,7 +73,7 @@ async def rules_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• 🟢 **Villagers:** Deduce who the Mafia members are and vote them out during the day.\n\n"
         "⚙️ **Commands:**\n"
         "• `/newgame` - Open game lobby\n"
-        "• `/play` - Start match (Host only)\n"
+        "• `/play` - Start match\n"
         "• `/cancelgame` - Abort active session"
     )
     await update.message.reply_text(rules_text, parse_mode="Markdown")
@@ -95,7 +95,7 @@ async def new_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "🎭 **Mafia Game Lobby Open!**\n\n"
         "Click below to join the match.\n"
-        "Require minimum 3 players to start. Host can type `/play` when ready.",
+        "Require minimum 3 players to start. Type `/play` when ready.",
         reply_markup=keyboard,
         parse_mode="Markdown"
     )
@@ -116,23 +116,6 @@ async def play_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ Need at least 3 players to start the game!")
         return
 
-    # Verify DMs
-    unreachable = []
-    for p_id in game.players:
-        try:
-            await context.bot.send_chat_action(chat_id=p_id, action="typing")
-        except Exception:
-            unreachable.append(game.players[p_id]["name"])
-
-    if unreachable:
-        names = ", ".join(unreachable)
-        await update.message.reply_text(
-            f"⚠️ Cannot send DMs to: **{names}**.\nThey must start a private chat with the bot first!",
-            parse_mode="Markdown"
-        )
-        return
-
-    # Assign Roles
     roles = distribute_roles(game.players.keys())
     for p_id, role in roles.items():
         game.players[p_id]["role"] = role
@@ -152,28 +135,30 @@ async def start_night_phase(context: ContextTypes.DEFAULT_TYPE):
         targets = [
             [InlineKeyboardButton(target["name"], callback_data=f"night_{role}_{t_id}")]
             for t_id, target in alive_players.items()
-            if not (role == "Doctor" and t_id == p_id) # Optional: restriction on self heal
+            if not (role == "Doctor" and t_id == p_id)
         ]
         
-        if role == "Mafia":
-            await context.bot.send_message(
-                p_id, "🔴 **Night Phase:** Select a target to eliminate:",
-                reply_markup=InlineKeyboardMarkup(targets)
-            )
-        elif role == "Doctor":
-            await context.bot.send_message(
-                p_id, "🩺 **Night Phase:** Select a player to protect/heal:",
-                reply_markup=InlineKeyboardMarkup(targets)
-            )
-        elif role == "Detective":
-            await context.bot.send_message(
-                p_id, "🕵️ **Night Phase:** Select a player to investigate:",
-                reply_markup=InlineKeyboardMarkup(targets)
-            )
-        else:
-            await context.bot.send_message(p_id, "😴 **Night Phase:** You are a Villager. Go to sleep...")
+        try:
+            if role == "Mafia":
+                await context.bot.send_message(
+                    p_id, "🔴 **Night Phase:** Select a target to eliminate:",
+                    reply_markup=InlineKeyboardMarkup(targets)
+                )
+            elif role == "Doctor":
+                await context.bot.send_message(
+                    p_id, "🩺 **Night Phase:** Select a player to protect/heal:",
+                    reply_markup=InlineKeyboardMarkup(targets)
+                )
+            elif role == "Detective":
+                await context.bot.send_message(
+                    p_id, "🕵️ **Night Phase:** Select a player to investigate:",
+                    reply_markup=InlineKeyboardMarkup(targets)
+                )
+            else:
+                await context.bot.send_message(p_id, "😴 **Night Phase:** You are a Villager. Go to sleep...")
+        except Exception:
+            pass
 
-    # Wait 30 seconds for night actions
     await asyncio.sleep(30)
     await resolve_night(context)
 
@@ -329,7 +314,7 @@ def main():
     app.add_handler(CommandHandler("play", play_game))
     app.add_handler(CallbackQueryHandler(handle_callbacks))
 
-    print("Professional Bot Engine Running...")
+    print("Bot Engine Running...")
     app.run_polling()
 
 if __name__ == "__main__":
