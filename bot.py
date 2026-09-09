@@ -9,164 +9,329 @@ from telegram.ext import (
     ContextTypes,
 )
 
-# Railway Environment Variables se token fetch karega
 TOKEN = os.getenv("BOT_TOKEN")
+WELCOME_IMAGE = "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800"
 
-class Game:
+class MafiaGame:
     def __init__(self):
+        self.reset()
+
+    def reset(self):
         self.is_active = False
-        self.players = {}
-        self.votes = {}
-        self.phase = "LOBBY"
+        self.chat_id = None
+        self.phase = "LOBBY"  # LOBBY, NIGHT, DAY
+        self.players = {}     # {user_id: {"name": str, "role": str, "alive": bool}}
+        self.night_actions = {"mafia_target": None, "doctor_target": None}
+        self.day_votes = {}   # {voter_id: target_id}
 
-game = Game()
+game = MafiaGame()
 
-def assign_roles(player_ids):
+# --- HELPER FUNCTIONS ---
+def distribute_roles(player_ids):
     ids = list(player_ids)
     random.shuffle(ids)
-    roles = ["Mafia", "Detective", "Doctor"] + ["Villager"] * (len(ids) - 3)
-    if len(ids) < 3:
-        roles = ["Mafia"] + ["Villager"] * (len(ids) - 1)
+    count = len(ids)
+    
+    roles = ["Mafia"]
+    if count >= 3:
+        roles.append("Detective")
+    if count >= 4:
+        roles.append("Doctor")
+    if count >= 5:
+        roles.append("Mafia")
+        
+    while len(roles) < count:
+        roles.append("Villager")
+        
+    random.shuffle(roles)
     return {p_id: roles[i] for i, p_id in enumerate(ids)}
 
-async def start_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if game.is_active:
-        await update.message.reply_text("Ek game pehle se chal raha hai!")
+def get_alive_players():
+    return {p_id: data for p_id, data in game.players.items() if data["alive"]}
+
+# --- COMMAND HANDLERS ---
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_name = update.effective_user.first_name
+    caption = (
+        f"👋 **Welcome to Mafia Host, {user_name}!**\n\n"
+        "I am a fully automated Mafia/Werewolf game engine built for Telegram groups.\n\n"
+        "📌 **How to Play:**\n"
+        "1. Add me to a Telegram Group and give me Admin rights.\n"
+        "2. Type `/newgame` in the group to start a lobby.\n"
+        "3. Ensure all players press `/start` in DM so I can assign secret roles!\n\n"
+        "Use `/rules` for complete role instructions."
+    )
+    await update.message.reply_photo(photo=WELCOME_IMAGE, caption=caption, parse_mode="Markdown")
+
+async def rules_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    rules_text = (
+        "📖 **Mafia Game Rules**\n\n"
+        "🎭 **Roles:**\n"
+        "• 🔴 **Mafia:** Cooperate to eliminate town members without revealing yourselves.\n"
+        "• 🩺 **Doctor:** Select a player each night to save from potential elimination.\n"
+        "• 🕵️ **Detective:** Investigate one player each night to learn their true identity.\n"
+        "• 🟢 **Villagers:** Deduce who the Mafia members are and vote them out during the day.\n\n"
+        "⚙️ **Commands:**\n"
+        "• `/newgame` - Open game lobby\n"
+        "• `/play` - Start match (Host only)\n"
+        "• `/cancelgame` - Abort active session"
+    )
+    await update.message.reply_text(rules_text, parse_mode="Markdown")
+
+async def new_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_chat.type == "private":
+        await update.message.reply_text("⚠️ Please run `/newgame` inside a Telegram group chat!")
         return
+
+    if game.is_active:
+        await update.message.reply_text("⚠️ A game session is already in progress!")
+        return
+
+    game.reset()
     game.is_active = True
-    game.players = {}
-    game.votes = {}
-    game.phase = "LOBBY"
-    
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🎮 Join Game", callback_data="join_game")]
-    ])
+    game.chat_id = update.effective_chat.id
+
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🎮 Join Game", callback_data="join_lobby")]])
     await update.message.reply_text(
         "🎭 **Mafia Game Lobby Open!**\n\n"
-        "Game join karne ke liye niche button par click karein.\n"
-        "Jab sab join kar lein, to /play type karein.",
+        "Click below to join the match.\n"
+        "Require minimum 3 players to start. Host can type `/play` when ready.",
         reply_markup=keyboard,
         parse_mode="Markdown"
     )
 
-async def join_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    user = query.from_user
-    
-    if game.phase != "LOBBY":
-        await query.answer("Game already start ho chuka hai!", show_alert=True)
+async def cancel_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not game.is_active:
+        await update.message.reply_text("No active game to cancel.")
         return
-    if user.id in game.players:
-        await query.answer("Aap pehle se game me hain!", show_alert=True)
-        return
-        
-    game.players[user.id] = {"name": user.first_name, "role": None, "alive": True}
-    await query.answer("Aap game me join ho gaye!")
-    await query.message.edit_text(
-        f"🎭 **Mafia Game Lobby Open!**\n\n"
-        f"Total Players: {len(game.players)}\n"
-        f"Players: {', '.join([p['name'] for p in game.players.values()])}\n\n"
-        "Niche button se join karein ya host /play start kare.",
-        reply_markup=query.message.reply_markup,
-        parse_mode="Markdown"
-    )
+    game.reset()
+    await update.message.reply_text("🛑 **Game session has been cancelled.**")
 
 async def play_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not game.is_active or game.phase != "LOBBY":
-        await update.message.reply_text("Pehle /newgame start karein!")
+        await update.message.reply_text("No active lobby! Start one using `/newgame`.")
         return
-    if len(game.players) < 2:
-        await update.message.reply_text("Game start karne ke liye kam se kam 2 players chahiye!")
+
+    if len(game.players) < 3:
+        await update.message.reply_text("⚠️ Need at least 3 players to start the game!")
         return
-        
-    game.phase = "NIGHT"
-    roles = assign_roles(game.players.keys())
-    
+
+    # Verify DMs
+    unreachable = []
+    for p_id in game.players:
+        try:
+            await context.bot.send_chat_action(chat_id=p_id, action="typing")
+        except Exception:
+            unreachable.append(game.players[p_id]["name"])
+
+    if unreachable:
+        names = ", ".join(unreachable)
+        await update.message.reply_text(
+            f"⚠️ Cannot send DMs to: **{names}**.\nThey must start a private chat with the bot first!",
+            parse_mode="Markdown"
+        )
+        return
+
+    # Assign Roles
+    roles = distribute_roles(game.players.keys())
     for p_id, role in roles.items():
         game.players[p_id]["role"] = role
-        try:
+
+    await update.message.reply_text("🤫 **Roles distributed! Starting Night 1... Check your DMs!**")
+    await start_night_phase(context)
+
+# --- GAME ENGINE LOGIC ---
+async def start_night_phase(context: ContextTypes.DEFAULT_TYPE):
+    game.phase = "NIGHT"
+    game.night_actions = {"mafia_target": None, "doctor_target": None}
+    
+    alive_players = get_alive_players()
+    
+    for p_id, data in alive_players.items():
+        role = data["role"]
+        targets = [
+            [InlineKeyboardButton(target["name"], callback_data=f"night_{role}_{t_id}")]
+            for t_id, target in alive_players.items()
+            if not (role == "Doctor" and t_id == p_id) # Optional: restriction on self heal
+        ]
+        
+        if role == "Mafia":
             await context.bot.send_message(
-                chat_id=p_id,
-                text=f"🤫 **Aapka Secret Role Hai:** {role}\n\nGroup chat me apna role reveal mat karna!"
+                p_id, "🔴 **Night Phase:** Select a target to eliminate:",
+                reply_markup=InlineKeyboardMarkup(targets)
             )
-        except Exception:
-            await update.message.reply_text(
-                f"⚠️ User {game.players[p_id]['name']} ko DM nahi bhej saka. Unhe pehle Bot ko DM me /start karna padega."
+        elif role == "Doctor":
+            await context.bot.send_message(
+                p_id, "🩺 **Night Phase:** Select a player to protect/heal:",
+                reply_markup=InlineKeyboardMarkup(targets)
             )
+        elif role == "Detective":
+            await context.bot.send_message(
+                p_id, "🕵️ **Night Phase:** Select a player to investigate:",
+                reply_markup=InlineKeyboardMarkup(targets)
+            )
+        else:
+            await context.bot.send_message(p_id, "😴 **Night Phase:** You are a Villager. Go to sleep...")
 
-    await update.message.reply_text(
-        "🤫 **Raat ho gayi hai... Sabhi apna role DM me check karein!**\n\n"
-        "Voting phase ke liye 10 seconds ka wait karein...",
-        parse_mode="Markdown"
-    )
-    await asyncio.sleep(10)
-    await start_day_voting(update, context)
+    # Wait 30 seconds for night actions
+    await asyncio.sleep(30)
+    await resolve_night(context)
 
-async def start_day_voting(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    game.phase = "DAY"
-    game.votes = {}
-    buttons = [[InlineKeyboardButton(f"Vote {data['name']}", callback_data=f"vote_{p_id}")] 
-               for p_id, data in game.players.items() if data["alive"]]
+async def resolve_night(context: ContextTypes.DEFAULT_TYPE):
+    target_id = game.night_actions["mafia_target"]
+    doctor_id = game.night_actions["doctor_target"]
     
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="☀️ **Din ho gaya hai!**\n\nAapko lagta hai Mafia kaun hai? Niche click karke vote karein:",
-        reply_markup=InlineKeyboardMarkup(buttons),
-        parse_mode="Markdown"
-    )
+    killed_player = None
+    if target_id and target_id != doctor_id:
+        killed_player = game.players[target_id]
+        killed_player["alive"] = False
 
-async def vote_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    voter_id = query.from_user.id
-    
-    if game.phase != "DAY" or voter_id not in game.players or not game.players[voter_id]["alive"]:
-        await query.answer("Aap vote nahi kar sakte!", show_alert=True)
+    night_summary = "☀️ **Daytime Arrives!**\n\n"
+    if killed_player:
+        night_summary += f"💀 **{killed_player['name']}** was eliminated during the night!\nRole: **{killed_player['role']}**"
+    else:
+        night_summary += "🎉 It was a peaceful night! Nobody was killed."
+
+    await context.bot.send_message(game.chat_id, night_summary, parse_mode="Markdown")
+
+    if await check_win_conditions(context):
         return
-        
-    target_id = int(query.data.split("_")[1])
-    game.votes[voter_id] = target_id
-    await query.answer("Aapne vote register kar diya!")
-    
-    alive_count = sum(1 for p in game.players.values() if p["alive"])
-    if len(game.votes) >= alive_count:
-        await count_votes(context, query.message.chat_id)
 
-async def count_votes(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
-    vote_counts = {}
-    for target_id in game.votes.values():
-        vote_counts[target_id] = vote_counts.get(target_id, 0) + 1
-        
-    eliminated_id = max(vote_counts, key=vote_counts.get)
-    eliminated_player = game.players[eliminated_id]
-    eliminated_player["alive"] = False
+    await start_day_phase(context)
+
+async def start_day_phase(context: ContextTypes.DEFAULT_TYPE):
+    game.phase = "DAY"
+    game.day_votes = {}
     
+    alive_players = get_alive_players()
+    buttons = [
+        [InlineKeyboardButton(f"Vote {data['name']}", callback_data=f"vote_{p_id}")]
+        for p_id, data in alive_players.items()
+    ]
+
     await context.bot.send_message(
-        chat_id=chat_id,
-        text=f"💀 **{eliminated_player['name']}** ko eliminate kar diya gaya! Role: **{eliminated_player['role']}**.",
-        parse_mode="Markdown"
+        game.chat_id,
+        "🗣 **Discussion & Voting Time!**\nVote for who you suspect is Mafia. You have 45 seconds!",
+        reply_markup=InlineKeyboardMarkup(buttons)
     )
-    
-    mafia_alive = any(p["alive"] for p in game.players.values() if p["role"] == "Mafia")
-    villagers_alive = any(p["alive"] for p in game.players.values() if p["role"] != "Mafia")
-    
-    if not mafia_alive:
-        await context.bot.send_message(chat_id=chat_id, text="🎉 **Villagers Jeet Gaye!**")
-        game.is_active = False
-    elif not villagers_alive:
-        await context.bot.send_message(chat_id=chat_id, text="🔴 **Mafia Jeet Gaya!**")
-        game.is_active = False
+
+    await asyncio.sleep(45)
+    await resolve_day(context)
+
+async def resolve_day(context: ContextTypes.DEFAULT_TYPE):
+    if game.phase != "DAY":
+        return
+
+    if not game.day_votes:
+        await context.bot.send_message(game.chat_id, "⌛ Voting time ended with no cast votes. Nobody was eliminated.")
+    else:
+        vote_counts = {}
+        for target_id in game.day_votes.values():
+            vote_counts[target_id] = vote_counts.get(target_id, 0) + 1
+        
+        eliminated_id = max(vote_counts, key=vote_counts.get)
+        eliminated_player = game.players[eliminated_id]
+        eliminated_player["alive"] = False
+
+        await context.bot.send_message(
+            game.chat_id,
+            f"💀 **{eliminated_player['name']}** was voted out!\nRole: **{eliminated_player['role']}**",
+            parse_mode="Markdown"
+        )
+
+    if await check_win_conditions(context):
+        return
+
+    await start_night_phase(context)
+
+async def check_win_conditions(context: ContextTypes.DEFAULT_TYPE) -> bool:
+    alive = get_alive_players()
+    mafia_count = sum(1 for p in alive.values() if p["role"] == "Mafia")
+    town_count = len(alive) - mafia_count
+
+    if mafia_count == 0:
+        await context.bot.send_message(game.chat_id, "🎉 **THE VILLAGERS WIN!** All Mafia members have been eliminated.")
+        game.reset()
+        return True
+    elif mafia_count >= town_count:
+        await context.bot.send_message(game.chat_id, "🔴 **THE MAFIA WINS!** They have overtaken the village.")
+        game.reset()
+        return True
+
+    return False
+
+# --- CALLBACK HANDLERS ---
+async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    user = query.from_user
+    data = query.data
+
+    if data == "join_lobby":
+        if game.phase != "LOBBY":
+            await query.answer("Lobby is closed!", show_alert=True)
+            return
+        if user.id in game.players:
+            await query.answer("Already joined!", show_alert=True)
+            return
+            
+        game.players[user.id] = {"name": user.first_name, "role": None, "alive": True}
+        await query.answer("Joined game!")
+        
+        plist = ", ".join([p["name"] for p in game.players.values()])
+        await query.message.edit_text(
+            f"🎭 **Mafia Game Lobby Open!**\n\n"
+            f"**Total Players:** {len(game.players)}\n"
+            f"**Joined:** {plist}\n\n"
+            "Host can start with `/play` when ready.",
+            reply_markup=query.message.reply_markup,
+            parse_mode="Markdown"
+        )
+
+    elif data.startswith("night_"):
+        _, role, target_id = data.split("_")
+        target_id = int(target_id)
+        
+        if role == "Mafia":
+            game.night_actions["mafia_target"] = target_id
+            await query.answer("Target locked in.")
+            await query.edit_message_text(f"🎯 Target set to: {game.players[target_id]['name']}")
+            
+        elif role == "Doctor":
+            game.night_actions["doctor_target"] = target_id
+            await query.answer("Protection target set.")
+            await query.edit_message_text(f"🩺 Protect set on: {game.players[target_id]['name']}")
+            
+        elif role == "Detective":
+            target = game.players[target_id]
+            is_mafia = "YES (Mafia 🔴)" if target["role"] == "Mafia" else "NO (Innocent 🟢)"
+            await query.answer()
+            await query.edit_message_text(f"🕵️ Inspection Result:\n**{target['name']}** is Mafia: **{is_mafia}**", parse_mode="Markdown")
+
+    elif data.startswith("vote_"):
+        if game.phase != "DAY" or user.id not in get_alive_players():
+            await query.answer("You cannot vote!", show_alert=True)
+            return
+            
+        target_id = int(data.split("_")[1])
+        game.day_votes[user.id] = target_id
+        await query.answer("Vote registered!")
 
 def main():
     if not TOKEN:
-        raise ValueError("BOT_TOKEN variable nahi mila!")
+        raise ValueError("BOT_TOKEN is missing!")
+
     app = Application.builder().token(TOKEN).build()
-    app.add_handler(CommandHandler("newgame", start_game))
+
+    app.add_handler(CommandHandler("start", start_command))
+    app.add_handler(CommandHandler("rules", rules_command))
+    app.add_handler(CommandHandler("newgame", new_game))
+    app.add_handler(CommandHandler("cancelgame", cancel_game))
     app.add_handler(CommandHandler("play", play_game))
-    app.add_handler(CallbackQueryHandler(join_callback, pattern="^join_game$"))
-    app.add_handler(CallbackQueryHandler(vote_callback, pattern="^vote_"))
-    
-    print("Bot Start Ho Gaya...")
+    app.add_handler(CallbackQueryHandler(handle_callbacks))
+
+    print("Professional Bot Engine Running...")
     app.run_polling()
 
 if __name__ == "__main__":
     main()
+            
