@@ -50,37 +50,64 @@ def get_alive_players():
 
 # --- COMMAND HANDLERS ---
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handles /start command instantly without failing on external links."""
+    """Custom Mafia Game Bot Welcome Message with exact original fonts & Premium Emojis."""
     user_name = update.effective_user.first_name
-    text = (
-        f"👋 **Welcome to Mafia Host, {user_name}!**\n\n"
-        "I am a fully automated Mafia/Werewolf game engine built for Telegram groups.\n\n"
-        "📌 **How to Play:**\n"
-        "1. Add me to a Telegram Group and give me Admin rights.\n"
-        "2. Type `/newgame` in the group to start a lobby.\n"
-        "3. Ensure all players press `/start` here in DM so I can assign secret roles!\n\n"
-        "Use `/rules` for complete role instructions."
+
+    # Premium Emoji Tags
+    E_AVATAR = '<tg-emoji emoji-id="6274076470671319190">👩‍🦰</tg-emoji>'
+    E_ARROW  = '<tg-emoji emoji-id="6269180384047533905">⏩</tg-emoji>'
+    E_LIGHT  = '<tg-emoji emoji-id="6269267069372469947">⚡</tg-emoji>'
+    E_SPARK  = '<tg-emoji emoji-id="6269085886177087845">✨</tg-emoji>'
+    E_POWER  = '<tg-emoji emoji-id="5474322494657699248">👑</tg-emoji>'
+
+    welcome_text = (
+        f"{E_AVATAR} <b>ʜєʏ {user_name}</b> {E_AVATAR}\n\n"
+        f"{E_ARROW} <b>ᴡєʟᴄσϻє ᴛσ ᴍᴀғɪᴀ ɢᴀᴍᴇ ʙᴏᴛ 🎭˼{E_SPARK}</b>\n"
+        f"<b>ᴘʀєϻɪᴜϻ | ᴀᴅ-ғʀєє | ᴜʟᴛʀᴧ ꜱϻσσᴛʜ</b>\n\n"
+        f"{E_ARROW} <b>ʜɪɢʜ-ǫᴜᴧʟɪᴛʏ ɢᴧᴍє ʜσꜱᴛ ʙσᴛ</b>\n"
+        f"<b>ғσʀ ᴛєʟᴇɢʀᴧϻ ɢʀσᴜᴘꜱ & ᴄʜᴧηηєʟꜱ</b>\n\n"
+        f"{E_LIGHT} <b>ꜱєᴄʀєᴛ ʀσʟє ᴧꜱꜱɪɢηϻєηᴛ</b>\n"
+        f"{E_LIGHT} <b>ᴧᴜᴛσϻᴧᴛєᴅ ɴɪɢʜᴛ/ᴅᴧʏ ᴘʜᴧꜱєꜱ</b>\n"
+        f"{E_LIGHT} <b>ɪηᴛєʀᴧᴄᴛɪᴠє ᴠσᴛɪηɢ | ησ ʟᴧɢ</b>\n\n"
+        f"{E_ARROW} <b>ᴛᴧᴘ ʜєʟᴘ ғσʀ ᴄσϻϻᴧηᴅꜱ</b>\n\n"
+        f"{E_POWER} <b>ᴘσᴡєʀєᴅ ʙʏ : <a href='https://t.me/sasuke_qt'>𝛅 ᥲ s 𝛖 𝛋 ᴇ ࿐</a></b>\n\n"
+        f"•── ⋅ ⋅ ────── ⋅᯽⋅ ────── ⋅ ⋅ ──•"
     )
-    await update.message.reply_text(text, parse_mode="Markdown")
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("✨ ➕ ADD ME TO YOUR CHAT ➕ ✨", url=f"https://t.me/{context.bot.username}?startgroup=true")],
+        [
+            InlineKeyboardButton("TOP ⚡ UPDATES ↗️", url="https://t.me/ll_ABOUT_SASUKE_ll"),
+            InlineKeyboardButton("💬 SUPPORT ↗️", url="https://t.me/+W3WrSwmHeaY5NjM9")
+        ],
+        [InlineKeyboardButton("🎮 HELP AND COMMANDS 🎮", callback_data="show_help")],
+        [InlineKeyboardButton("👑 OWNER ↗️", url="https://t.me/sasuke_qt")]
+    ])
+
+    await update.message.reply_text(
+        text=welcome_text,
+        reply_markup=keyboard,
+        parse_mode="HTML"
+    )
 
 async def rules_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     rules_text = (
-        "📖 **Mafia Game Rules**\n\n"
-        "🎭 **Roles:**\n"
-        "• 🔴 **Mafia:** Cooperate to eliminate town members without revealing yourselves.\n"
-        "• 🩺 **Doctor:** Select a player each night to save from potential elimination.\n"
-        "• 🕵️ **Detective:** Investigate one player each night to learn their true identity.\n"
-        "• 🟢 **Villagers:** Deduce who the Mafia members are and vote them out during the day.\n\n"
-        "⚙️ **Commands:**\n"
-        "• `/newgame` - Open game lobby\n"
-        "• `/play` - Start match\n"
-        "• `/cancelgame` - Abort active session"
+        "📖 <b>Mafia Game Rules & Roles</b>\n\n"
+        "🎭 <b>Game Roles:</b>\n"
+        "• 🔴 <b>Mafia:</b> Eliminate villagers secretly without getting exposed.\n"
+        "• 🩺 <b>Doctor:</b> Choose one player each night to save from attack.\n"
+        "• 🕵️ <b>Detective:</b> Investigate one player each night to check if they are Mafia.\n"
+        "• 🟢 <b>Villagers:</b> Work together during discussion and vote out the Mafia.\n\n"
+        "⚙️ <b>Commands:</b>\n"
+        "• <code>/newgame</code> - Open a new game lobby in a group\n"
+        "• <code>/play</code> - Start the game match\n"
+        "• <code>/cancelgame</code> - Cancel the running game session"
     )
-    await update.message.reply_text(rules_text, parse_mode="Markdown")
+    await update.message.reply_text(rules_text, parse_mode="HTML")
 
 async def new_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.type == "private":
-        await update.message.reply_text("⚠️ Please run `/newgame` inside a Telegram group chat!")
+        await update.message.reply_text("⚠️ Please run <code>/newgame</code> inside a Telegram group chat!", parse_mode="HTML")
         return
 
     if game.is_active:
@@ -93,11 +120,11 @@ async def new_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🎮 Join Game", callback_data="join_lobby")]])
     await update.message.reply_text(
-        "🎭 **Mafia Game Lobby Open!**\n\n"
-        "Click below to join the match.\n"
-        "Require minimum 3 players to start. Type `/play` when ready.",
+        "🎭 <b>Mafia Game Lobby Open!</b>\n\n"
+        "Click the button below to join the game.\n"
+        "Minimum 3 players required. Type <code>/play</code> when ready to begin!",
         reply_markup=keyboard,
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 async def cancel_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -105,11 +132,11 @@ async def cancel_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("No active game to cancel.")
         return
     game.reset()
-    await update.message.reply_text("🛑 **Game session has been cancelled.**")
+    await update.message.reply_text("🛑 <b>Game session has been cancelled.</b>", parse_mode="HTML")
 
 async def play_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not game.is_active or game.phase != "LOBBY":
-        await update.message.reply_text("No active lobby! Start one using `/newgame`.")
+        await update.message.reply_text("No active lobby! Start one using <code>/newgame</code>.", parse_mode="HTML")
         return
 
     if len(game.players) < 3:
@@ -120,7 +147,7 @@ async def play_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for p_id, role in roles.items():
         game.players[p_id]["role"] = role
 
-    await update.message.reply_text("🤫 **Roles distributed! Starting Night 1... Check your DMs!**")
+    await update.message.reply_text("🤫 <b>Roles distributed! Night Phase has begun. Check your DMs!</b>", parse_mode="HTML")
     await start_night_phase(context)
 
 # --- GAME ENGINE LOGIC ---
@@ -141,21 +168,24 @@ async def start_night_phase(context: ContextTypes.DEFAULT_TYPE):
         try:
             if role == "Mafia":
                 await context.bot.send_message(
-                    p_id, "🔴 **Night Phase:** Select a target to eliminate:",
-                    reply_markup=InlineKeyboardMarkup(targets)
+                    p_id, "🔴 <b>Night Phase:</b> Select a player to eliminate:",
+                    reply_markup=InlineKeyboardMarkup(targets),
+                    parse_mode="HTML"
                 )
             elif role == "Doctor":
                 await context.bot.send_message(
-                    p_id, "🩺 **Night Phase:** Select a player to protect/heal:",
-                    reply_markup=InlineKeyboardMarkup(targets)
+                    p_id, "🩺 <b>Night Phase:</b> Select a player to protect/heal:",
+                    reply_markup=InlineKeyboardMarkup(targets),
+                    parse_mode="HTML"
                 )
             elif role == "Detective":
                 await context.bot.send_message(
-                    p_id, "🕵️ **Night Phase:** Select a player to investigate:",
-                    reply_markup=InlineKeyboardMarkup(targets)
+                    p_id, "🕵️ <b>Night Phase:</b> Select a player to investigate:",
+                    reply_markup=InlineKeyboardMarkup(targets),
+                    parse_mode="HTML"
                 )
             else:
-                await context.bot.send_message(p_id, "😴 **Night Phase:** You are a Villager. Go to sleep...")
+                await context.bot.send_message(p_id, "😴 <b>Night Phase:</b> You are a Villager. Go to sleep...", parse_mode="HTML")
         except Exception:
             pass
 
@@ -171,13 +201,13 @@ async def resolve_night(context: ContextTypes.DEFAULT_TYPE):
         killed_player = game.players[target_id]
         killed_player["alive"] = False
 
-    night_summary = "☀️ **Daytime Arrives!**\n\n"
+    night_summary = "☀️ <b>Daytime Has Arrived!</b>\n\n"
     if killed_player:
-        night_summary += f"💀 **{killed_player['name']}** was eliminated during the night!\nRole: **{killed_player['role']}**"
+        night_summary += f"💀 <b>{killed_player['name']}</b> was eliminated during the night!\nTheir secret role was: <b>{killed_player['role']}</b>"
     else:
         night_summary += "🎉 It was a peaceful night! Nobody was killed."
 
-    await context.bot.send_message(game.chat_id, night_summary, parse_mode="Markdown")
+    await context.bot.send_message(game.chat_id, night_summary, parse_mode="HTML")
 
     if await check_win_conditions(context):
         return
@@ -196,8 +226,9 @@ async def start_day_phase(context: ContextTypes.DEFAULT_TYPE):
 
     await context.bot.send_message(
         game.chat_id,
-        "🗣 **Discussion & Voting Time!**\nVote for who you suspect is Mafia. You have 45 seconds!",
-        reply_markup=InlineKeyboardMarkup(buttons)
+        "🗣 <b>Discussion & Voting Time!</b>\nVote for who you suspect is Mafia. You have 45 seconds!",
+        reply_markup=InlineKeyboardMarkup(buttons),
+        parse_mode="HTML"
     )
 
     await asyncio.sleep(45)
@@ -208,7 +239,7 @@ async def resolve_day(context: ContextTypes.DEFAULT_TYPE):
         return
 
     if not game.day_votes:
-        await context.bot.send_message(game.chat_id, "⌛ Voting time ended with no cast votes. Nobody was eliminated.")
+        await context.bot.send_message(game.chat_id, "⌛ Voting time ended with no votes cast. Nobody was eliminated.")
     else:
         vote_counts = {}
         for target_id in game.day_votes.values():
@@ -220,8 +251,8 @@ async def resolve_day(context: ContextTypes.DEFAULT_TYPE):
 
         await context.bot.send_message(
             game.chat_id,
-            f"💀 **{eliminated_player['name']}** was voted out!\nRole: **{eliminated_player['role']}**",
-            parse_mode="Markdown"
+            f"💀 <b>{eliminated_player['name']}</b> was voted out!\nTheir secret role was: <b>{eliminated_player['role']}</b>",
+            parse_mode="HTML"
         )
 
     if await check_win_conditions(context):
@@ -235,11 +266,11 @@ async def check_win_conditions(context: ContextTypes.DEFAULT_TYPE) -> bool:
     town_count = len(alive) - mafia_count
 
     if mafia_count == 0:
-        await context.bot.send_message(game.chat_id, "🎉 **THE VILLAGERS WIN!** All Mafia members have been eliminated.")
+        await context.bot.send_message(game.chat_id, "🎉 <b>THE VILLAGERS WIN!</b> All Mafia members have been eliminated.", parse_mode="HTML")
         game.reset()
         return True
     elif mafia_count >= town_count:
-        await context.bot.send_message(game.chat_id, "🔴 **THE MAFIA WINS!** They have overtaken the village.")
+        await context.bot.send_message(game.chat_id, "🔴 <b>THE MAFIA WINS!</b> They have overtaken the town.", parse_mode="HTML")
         game.reset()
         return True
 
@@ -264,13 +295,25 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         plist = ", ".join([p["name"] for p in game.players.values()])
         await query.message.edit_text(
-            f"🎭 **Mafia Game Lobby Open!**\n\n"
-            f"**Total Players:** {len(game.players)}\n"
-            f"**Joined:** {plist}\n\n"
-            "Host can start with `/play` when ready.",
+            f"🎭 <b>Mafia Game Lobby Open!</b>\n\n"
+            f"<b>Total Players:</b> {len(game.players)}\n"
+            f"<b>Joined:</b> {plist}\n\n"
+            "Host can start with <code>/play</code> when ready.",
             reply_markup=query.message.reply_markup,
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
+
+    elif data == "show_help":
+        help_text = (
+            "📖 <b>Help & Commands List</b>\n\n"
+            "• <code>/start</code> - Start bot and view welcome screen\n"
+            "• <code>/rules</code> - Read role descriptions and game rules\n"
+            "• <code>/newgame</code> - Create a new game lobby in a group\n"
+            "• <code>/play</code> - Start game match\n"
+            "• <code>/cancelgame</code> - Force stop current game"
+        )
+        await query.message.reply_text(help_text, parse_mode="HTML")
+        await query.answer()
 
     elif data.startswith("night_"):
         _, role, target_id = data.split("_")
@@ -279,27 +322,27 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if role == "Mafia":
             game.night_actions["mafia_target"] = target_id
             await query.answer("Target locked in.")
-            await query.edit_message_text(f"🎯 Target set to: {game.players[target_id]['name']}")
+            await query.edit_message_text(f"🎯 Target set to: <b>{game.players[target_id]['name']}</b>", parse_mode="HTML")
             
         elif role == "Doctor":
             game.night_actions["doctor_target"] = target_id
             await query.answer("Protection target set.")
-            await query.edit_message_text(f"🩺 Protect set on: {game.players[target_id]['name']}")
+            await query.edit_message_text(f"🩺 Protection set on: <b>{game.players[target_id]['name']}</b>", parse_mode="HTML")
             
         elif role == "Detective":
             target = game.players[target_id]
             is_mafia = "YES (Mafia 🔴)" if target["role"] == "Mafia" else "NO (Innocent 🟢)"
             await query.answer()
-            await query.edit_message_text(f"🕵️ Inspection Result:\n**{target['name']}** is Mafia: **{is_mafia}**", parse_mode="Markdown")
+            await query.edit_message_text(f"🕵️ Inspection Result:\n<b>{target['name']}</b> is Mafia: <b>{is_mafia}</b>", parse_mode="HTML")
 
     elif data.startswith("vote_"):
         if game.phase != "DAY" or user.id not in get_alive_players():
-            await query.answer("You cannot vote!", show_alert=True)
+            await query.answer("You cannot vote right now!", show_alert=True)
             return
             
         target_id = int(data.split("_")[1])
         game.day_votes[user.id] = target_id
-        await query.answer("Vote registered!")
+        await query.answer("Your vote has been registered!")
 
 def main():
     if not TOKEN:
@@ -319,4 +362,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-            
