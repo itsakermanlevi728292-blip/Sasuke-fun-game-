@@ -90,7 +90,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ])
 
     await update.message.reply_photo(
-        photo=START_MEDIA_URL,
+        photo=START_MEDIA_URL = "https://files.catbox.moe/e6rzem.jpg"
         caption=welcome_text,
         reply_markup=keyboard,
         parse_mode="HTML"
