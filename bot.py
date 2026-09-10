@@ -80,17 +80,17 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("✨ ➕ ADD ME TO YOUR CHAT ➕ ✨", url=f"https://t.me/{context.bot.username}?startgroup=true")],
+        [InlineKeyboardButton("✨ ➕ ADD ME TO YOUR CHAT ➕ ✨", url=f"https://t.me/{context.bot.username}?startgroup=true", style="primary")],
         [
-            InlineKeyboardButton("TOP ⚡ UPDATES ↗️", url="https://t.me/ll_ABOUT_SASUKE_ll"),
-            InlineKeyboardButton("💬 SUPPORT ↗️", url="https://t.me/+W3WrSwmHeaY5NjM9")
+            InlineKeyboardButton("TOP ⚡ UPDATES ↗️", url="https://t.me/ll_ABOUT_SASUKE_ll", style="success"),
+            InlineKeyboardButton("💬 SUPPORT ↗️", url="https://t.me/+W3WrSwmHeaY5NjM9", style="danger")
         ],
-        [InlineKeyboardButton("🎮 HELP AND COMMANDS 🎮", callback_data="show_help")],
-        [InlineKeyboardButton("👑 OWNER ↗️", url="https://t.me/sasuke_qt")]
+        [InlineKeyboardButton("🎮 HELP AND COMMANDS 🎮", callback_data="show_help", style="success")],
+        [InlineKeyboardButton("👑 OWNER ↗️", url="https://t.me/sasuke_qt", style="danger")]
     ])
 
     await update.message.reply_photo(
-        photo=START_MEDIA_URL = "https://files.catbox.moe/e6rzem.jpg"
+        photo=START_MEDIA_URL,
         caption=welcome_text,
         reply_markup=keyboard,
         parse_mode="HTML"
